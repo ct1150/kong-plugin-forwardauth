@@ -1,13 +1,13 @@
 # kong-plugin-forwardauth
 
 ## Environment
----
+
 k8s 1.13
 kong 2.0
 kong-ingress-controller:0.8.1
 
 ## Description
----
+
 This plugin lets you authenticate any request using a separate HTTP service.
 
 For every incoming request, the method, query and headers are forwarded to the auth service (removing the body).
@@ -19,7 +19,7 @@ You can set authResponseHeaders to copy header from response and set to request'
 Always ignore OPTIONS request.
 
 ## Installation
----
+
 [setting-up-custom-plugins](https://github.com/Kong/kubernetes-ingress-controller/blob/master/docs/guides/setting-up-custom-plugins.md)
 ## Configuration
 ```
@@ -36,5 +36,5 @@ config:
 plugin: auth-forward
 ```
 ## Author
----
+
 owen cao
