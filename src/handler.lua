@@ -35,7 +35,11 @@ function AuthForwardHandler:access(conf)
   if conf.authResponseHeaders then
     for k,v in pairs(conf.authResponseHeaders)
     do
-      kong.service.request.set_header(tostring(v),res.headers[tostring(v)])
+	  if res.headers[v] then
+        kong.service.request.set_header(v,res.headers[v])
+	  else
+	    kong.log.err(v..'is null')
+	  end
 	end
   end
  
