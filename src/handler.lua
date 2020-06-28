@@ -13,6 +13,10 @@ function AuthForwardHandler:access(conf)
   if kong.request.get_method() == "OPTIONS" then
     return
   end
+  
+  if string.match(kong.request.get_path(),'health') then
+    return
+  end
  
   local client = http.new()
   client:set_timeouts(conf.connect_timeout, send_timeout, read_timeout)
@@ -32,13 +36,14 @@ function AuthForwardHandler:access(conf)
   if res.status ~= 200 then
     return kong.response.exit(401,"auth fail")
   end
+  
   if conf.authResponseHeaders then
     for k,v in pairs(conf.authResponseHeaders)
     do
 	  if res.headers[v] then
         kong.service.request.set_header(v,res.headers[v])
 	  else
-	    kong.log.err(v..'is null')
+	    kong.log.err(v..' is null')
 	  end
 	end
   end
