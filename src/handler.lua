@@ -14,7 +14,7 @@ function AuthForwardHandler:access(conf)
     return
   end
   
-  if string.match(kong.request.get_path(),'health') then
+  if string.match(kong.request.get_path(),'^/.*/health$') then
     return
   end
  
