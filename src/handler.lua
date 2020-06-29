@@ -13,7 +13,6 @@ function AuthForwardHandler:access(conf)
   if kong.request.get_method() == "OPTIONS" then
     return
   end
-  
   if string.match(kong.request.get_path(),'^/.*/health$') then
     return
   end
@@ -21,13 +20,16 @@ function AuthForwardHandler:access(conf)
   local client = http.new()
   client:set_timeouts(conf.connect_timeout, send_timeout, read_timeout)
  
+  local req_headers = kong.request.get_headers()
+  req_headers['X-Forwarded-Uri'] = kong.request.get_path()
   local res, err = client:request_uri(conf.url, {
-    method = kong.request.get_method(),
     path = tostring(conf.path),
-    query = kong.request.get_raw_query(),
-    headers = kong.request.get_headers(),
+    headers = req_headers,
     body = ""
   })
+  if err then
+    kong.log.err(err,kong.request.get_path(),kong.request.get_method())
+  end
  
   if not res then
     return kong.response.exit(500,"auth server error")
