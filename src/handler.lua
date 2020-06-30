@@ -18,25 +18,33 @@ function AuthForwardHandler:access(conf)
   end
  
   local client = http.new()
-  client:set_timeouts(conf.connect_timeout, send_timeout, read_timeout)
+  client:set_timeouts(5000, 5000, 5000)
  
   local req_headers = kong.request.get_headers()
   req_headers['X-Forwarded-Uri'] = kong.request.get_path()
   local res, err = client:request_uri(conf.url, {
+    method = "GET",
     path = tostring(conf.path),
-    headers = req_headers,
-    body = ""
+    headers = {
+	["X-Forwarded-Uri"] = kong.request.get_path(),
+	["sign"] = kong.request.get_header("sign"),
+	["loginname"] = kong.request.get_header("loginname"),
+	["rolecode"] = kong.request.get_header("rolecode"),
+	["token"] = kong.request.get_header("token"),	
+	}
   })
   if err then
     kong.log.err(err,kong.request.get_path(),kong.request.get_method())
+	return kong.response.exit(500,"Auth Server Error"..err)
   end
  
   if not res then
-    return kong.response.exit(500,"auth server error")
+    return kong.response.exit(500,"Auth Server Error")
   end
  
   if res.status ~= 200 then
-    return kong.response.exit(401,"auth fail")
+    kong.log.err(res.status,kong.request.get_path(),conf.url,tostring(conf.path),res.body)
+    return kong.response.exit(res.status, "Access Forbidden")
   end
   
   if conf.authResponseHeaders then
