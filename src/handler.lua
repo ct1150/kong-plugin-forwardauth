@@ -13,29 +13,52 @@ function AuthForwardHandler:access(conf)
   if kong.request.get_method() == "OPTIONS" then
     return
   end
+  if string.match(kong.request.get_path(),'^/.*/health$') then
+    return
+  end
  
   local client = http.new()
-  client:set_timeouts(conf.connect_timeout, send_timeout, read_timeout)
+  client:set_timeouts(5000, 5000, 5000)
  
+  local req_headers = kong.request.get_headers()
+  req_headers['X-Forwarded-Uri'] = kong.request.get_path()
   local res, err = client:request_uri(conf.url, {
-    method = kong.request.get_method(),
+    method = "GET",
     path = tostring(conf.path),
-    query = kong.request.get_raw_query(),
-    headers = kong.request.get_headers(),
-    body = ""
+    headers = {
+	["X-Forwarded-Uri"] = kong.request.get_path(),
+	["sign"] = kong.request.get_header("sign"),
+	["loginname"] = kong.request.get_header("loginname"),
+	["rolecode"] = kong.request.get_header("rolecode"),
+	["token"] = kong.request.get_header("token"),
+	["wxMiniProgramToken"] = kong.request.get_header("wxMiniProgramToken")
+	}
   })
+  if err then
+    kong.log.err(err,kong.request.get_path(),kong.request.get_method())
+	return kong.response.exit(500,"Auth Server Error"..err)
+  end
  
   if not res then
-    return kong.response.exit(500,"auth server error")
+    return kong.response.exit(500,"Auth Server Error")
   end
  
   if res.status ~= 200 then
-    return kong.response.exit(401,"auth fail")
+    kong.log.err(res.status,kong.request.get_path())
+    return kong.response.exit(res.status, "Access Forbidden",{
+	["Access-Control-Allow-Credentials"] = "true",
+	["Access-Control-Allow-Origin"] = "*"
+	})
   end
+  
   if conf.authResponseHeaders then
     for k,v in pairs(conf.authResponseHeaders)
     do
-      kong.service.request.set_header(tostring(v),res.headers[tostring(v)])
+	  if res.headers[v] then
+        kong.service.request.set_header(v,res.headers[v])
+	  else
+	    kong.log.err(v..' is null')
+	  end
 	end
   end
  
